@@ -34,15 +34,14 @@ public class AacoinSource extends BaseResource {
     private static final Double MINI_AMOUNT_ETH = 0.0025;
 
 
-
     @ApiOperation(value = "/order/place/buy-market", notes = "下单 buy-market：市价买入")
     @Path("/order/place/buy-market")
     @POST
     @Produces({Constant.APPLICATION_JSON_UTF8})
     @Consumes({Constant.APPLICATION_JSON_UTF8})
     public Response orderPlace_buyMarket(@QueryParam("secretKey") String secretKey, @QueryParam("accessKey") String accessKey,
-                                         @DefaultValue("AAT_ETH") @QueryParam("symbol") String symbol,
-                                         @QueryParam("digCount") Integer digCount) throws IOException, InterruptedException {
+                                         @DefaultValue("AAT_ETH") @QueryParam("symbol") String symbol, @DefaultValue("500.0") @QueryParam("sellCoinCount") Double sellCoinCount,
+                                         @DefaultValue("10") @QueryParam("digCount") Integer digCount) throws IOException, InterruptedException {
         Response<String> response = null;
         Double addRedPrice = 0.0;
         String returnResult = null;
@@ -152,7 +151,7 @@ public class AacoinSource extends BaseResource {
                 System.out.println("=================================================================================");
             }
 
-            Integer sellForEthCount = 0;
+            Double sellForEthCount = 0.0;
             Double sellForEthAmount = 0.0;
             //卖出对应的币获得eth
             Integer reducePrice = 1;
@@ -168,7 +167,12 @@ public class AacoinSource extends BaseResource {
                     System.out.println(accountsData.getCurrencyCode() + " :  " + accountsData.getAccounts().get(0).getBalance());
                     if (accountsData.getCurrencyCode().equals(sellCoin)) {
                         Double coinCount = Double.valueOf(accountsData.getAccounts().get(0).getBalance());
-                        sellForEthCount = coinCount.intValue(); //账户中含有的可以交易的币的数量
+                        sellForEthCount = coinCount; //账户中含有的可以交易的币的数量
+                        if (sellForEthCount > sellCoinCount) {
+                            sellForEthCount = sellCoinCount; //按设定的数量卖出
+                        } else {
+                            return new Response(Result.SUCCESS, "账户中币的数量小于设定的交易数量,交易失败");
+                        }
                     }
                 }
                 System.out.println("可以交易的" + sellCoin + "的数量为 ： " + sellForEthCount);
@@ -185,8 +189,9 @@ public class AacoinSource extends BaseResource {
 
                 if (sellForEthAmount < MINI_AMOUNT_ETH) { //如果总量小于最小的交易量取消
                     System.out.println("账户中的交易额度小于最小的交易额度");
-                    isCoinAvailable = false;
-                    break;
+//                    isCoinAvailable = false;
+//                    break;
+                    return new Response(Result.SUCCESS, "账户中的交易额度小于最小的交易额度,交易失败");
                 } else {
                     isCoinAvailable = true;
                 }
@@ -199,7 +204,8 @@ public class AacoinSource extends BaseResource {
                     reducePrice = reducePrice + 1;
                     if (!isMakeOrder) {
                         System.out.println("下单失败");
-                        break;//下单失败直接返回
+//                        break;//下单失败直接返回
+                        return new Response(Result.SUCCESS, "下单失败");
                     }
                 }
 
