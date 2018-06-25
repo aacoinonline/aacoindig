@@ -4,6 +4,16 @@
 2：运行 java -jar aacoin.jar
 3: 打开任意浏览器 127.0.0.1:9991
 
+POST /aacoin/order/place/buy-market 挖矿函数
+
+secretKey  申请的Key 
+accessKey  申请的Key
+symbol     交易对象比如（AAT_ETH）
+digCount   挖矿的次数（100000） 自己设定次数。 
+           优先测试 比如 5次，然后再修改。
+
+
+
 AAcoin 挖矿
 
 购买
