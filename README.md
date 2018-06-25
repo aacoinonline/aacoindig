@@ -1,4 +1,9 @@
 
+
+1: 安装JDK
+2：运行 java -jar aacoin.jar
+3: 打开任意浏览器 127.0.0.1:9991
+
 AAcoin 挖矿
 
 购买
