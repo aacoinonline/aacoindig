@@ -1,0 +1,37 @@
+server:
+  port: 9991
+
+spring:
+  profiles:
+    active: @profileActive@
+  application:
+    name: aacoin
+  jackson:
+    serialization:
+      indent_output: true
+#  cloud:
+#    config:
+#      profile: ${spring.profiles.active}
+#      username: ${security.user.name}
+#      password: ${security.user.password}
+##      uri: http://localhost:8888
+#      enabled: true
+#      discovery:
+#        enabled: true
+#        service-id: configserver
+  jersey:
+      application-path: /api
+
+endpoints:
+  enabled: true
+#  health:
+#    enabled: true
+##    sensitive: true #开启安全保证，信息更完整
+
+# Logging
+logging:
+  config: classpath:logback.xml
+  path: C:\aacoin\logs\${spring.application.name}
+  level:
+#    org.springframework.boot.actuate.endpoint: debug
+    org.springframework.boot.actuate: debug
