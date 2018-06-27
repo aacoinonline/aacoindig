@@ -34,14 +34,23 @@ public class AacoinSource extends BaseResource {
     private static final Double MINI_AMOUNT_ETH = 0.0025;
 
 
+    /**
+     * <p>Description: 自动交易</p>
+     * <p>param:  sellCoinCount 每次卖的数量</p>
+     * <p>param:  keepCount 保留的数量</p>
+     * <p>param:  keepCount 保留的数量</p>
+     * <p>date 2018/1/3 10:09 </p>
+     * <p>return </p>
+     */
     @ApiOperation(value = "/order/place/buy-market", notes = "下单 buy-market：市价买入")
     @Path("/order/place/buy-market")
     @POST
     @Produces({Constant.APPLICATION_JSON_UTF8})
     @Consumes({Constant.APPLICATION_JSON_UTF8})
     public Response orderPlace_buyMarket(@QueryParam("secretKey") String secretKey, @QueryParam("accessKey") String accessKey,
-                                         @DefaultValue("AAT_ETH") @QueryParam("symbol") String symbol, @DefaultValue("500.0") @QueryParam("sellCoinCount") Double sellCoinCount,
-                                         @DefaultValue("10") @QueryParam("digCount") Integer digCount) throws IOException, InterruptedException {
+                                         @DefaultValue("AAT_ETH") @QueryParam("symbol") String symbol,
+                                         @DefaultValue("500") @QueryParam("sellCoinCount") Double sellCoinCount, @DefaultValue("1500") @QueryParam("keepCount") Integer keepCount,
+                                         @DefaultValue("10") @QueryParam("digTimes") Integer digTimes) throws IOException, InterruptedException {
         Response<String> response = null;
         Double addRedPrice = 0.0;
         String returnResult = null;
@@ -58,7 +67,8 @@ public class AacoinSource extends BaseResource {
         Double sellCount = null;         //卖出的数量
         Boolean isCoinAvailable = true; //钱包中的代币总量是否可用,小于0.002不可用
 
-        for (int j = 0; j < digCount; j++) {
+        for (int j = 0; j < digTimes; j++) {
+            isCoinAvailable = true;
             System.out.println("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||挖矿次数 ：：：第 " + j + "次");
             //用eth买入对应的币
             Integer addPrice = 1;
@@ -167,6 +177,12 @@ public class AacoinSource extends BaseResource {
                     System.out.println(accountsData.getCurrencyCode() + " :  " + accountsData.getAccounts().get(0).getBalance());
                     if (accountsData.getCurrencyCode().equals(sellCoin)) {
                         Double coinCount = Double.valueOf(accountsData.getAccounts().get(0).getBalance());
+                        if (coinCount.intValue() < keepCount) {
+//                            return new Response(Result.SUCCESS, "剩余的数量小于设定的保留数量，挖矿结束。");
+                            isCoinAvailable = false;
+                            System.out.println("剩余的数量小于设定的保留数量，卖出结束");
+                            break;
+                        }
                         sellForEthCount = coinCount; //账户中含有的可以交易的币的数量
                         if (sellForEthCount > sellCoinCount) {
                             sellForEthCount = sellCoinCount; //按设定的数量卖出
@@ -174,6 +190,9 @@ public class AacoinSource extends BaseResource {
                             return new Response(Result.SUCCESS, "账户中币的数量小于设定的交易数量,交易失败");
                         }
                     }
+                }
+                if (!isCoinAvailable) {
+                    break;
                 }
                 System.out.println("可以交易的" + sellCoin + "的数量为 ： " + sellForEthCount);
 
@@ -200,7 +219,7 @@ public class AacoinSource extends BaseResource {
                 if (isCoinAvailable) { //可以下单则进行下单操作
                     //TODO 下单
                     System.out.println("开始下单");
-                    isMakeOrder = aacoinService.makeOrder(secretKey, accessKey, symbol, type, sellForEthCount.toString(), dCurrentPrice.toString());
+                    isMakeOrder = aacoinService.makeOrder(secretKey, accessKey, symbol, type, String.valueOf(sellForEthCount.intValue()), dCurrentPrice.toString());
                     reducePrice = reducePrice + 1;
                     if (!isMakeOrder) {
                         System.out.println("下单失败");

@@ -31,7 +31,7 @@ endpoints:
 # Logging
 logging:
   config: classpath:logback.xml
-  path: C:\aacoin\logs\${spring.application.name}
+  path: /aacoin/logs/${spring.application.name}
   level:
 #    org.springframework.boot.actuate.endpoint: debug
     org.springframework.boot.actuate: debug
