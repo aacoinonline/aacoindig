@@ -22,19 +22,18 @@ import java.util.stream.Collectors;
  */
 public class RestWithdrawDemo {
     public static void main(String[] args) throws IOException {
-        final String url = "https://api.aacoin.com/v1/account/withdraw";
+        final String url = "http://api.aacoin.com/v1/account/withdraw";
 
-        final String secretKey = "xx";
-        final String accessKey = "xx";
+        final String secretKey = "";
+        final String accessKey = "";
 
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpPost httpPost = new HttpPost(url);
-
-        List<NameValuePair> params = new ArrayList<NameValuePair>();
+            List<NameValuePair> params = new ArrayList<NameValuePair>();
         params.add(new BasicNameValuePair("accessKey", accessKey));
-        params.add(new BasicNameValuePair("currencyCode", "xx"));
-        params.add(new BasicNameValuePair("address", "xx"));
-        params.add(new BasicNameValuePair("amount", "xx"));
+        params.add(new BasicNameValuePair("currencyCode", "ETH"));
+        params.add(new BasicNameValuePair("address", "0x730d0f0e6fE12BDe5d52B3097f4b7ABf7fbc874a"));
+        params.add(new BasicNameValuePair("amount", "0.002"));
 
         //对参数进行排序
         params.sort((o1, o2) -> o1.getName().compareToIgnoreCase(o2.getName()));

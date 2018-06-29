@@ -1,12 +1,12 @@
 package com.aacoin.dig.api.service;
 
+import com.aacoin.dig.api.entity.AccountDetail;
 import com.aacoin.dig.api.entity.Accounts;
+import com.aacoin.dig.api.entity.AccountsData;
 import com.aacoin.dig.api.entity.MarketDetail;
+import com.aacoin.dig.api.utils.Utils;
 import com.alibaba.fastjson.JSONObject;
 import com.google.gson.Gson;
-import com.aacoin.dig.api.entity.AccountDetail;
-import com.aacoin.dig.api.entity.AccountsData;
-import com.aacoin.dig.api.utils.Utils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
  */
 @Service("aacoinService")
 public class AacoinService implements IAacoinService {
+
+    //每次交易最小的Eth数量
+    private static final Double MINI_AMOUNT_ETH = 0.0025;
 
     /**
      * <p>Description: 获取用户含有的币种记录</p>

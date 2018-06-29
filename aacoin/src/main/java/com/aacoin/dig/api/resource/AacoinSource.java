@@ -49,7 +49,7 @@ public class AacoinSource extends BaseResource {
     @Consumes({Constant.APPLICATION_JSON_UTF8})
     public Response orderPlace_buyMarket(@QueryParam("secretKey") String secretKey, @QueryParam("accessKey") String accessKey,
                                          @DefaultValue("AAT_ETH") @QueryParam("symbol") String symbol,
-                                         @DefaultValue("500") @QueryParam("sellCoinCount") Double sellCoinCount, @DefaultValue("1500") @QueryParam("keepCount") Integer keepCount,
+                                         @DefaultValue("500") @QueryParam("sellCoinCount") Double sellCoinCount, @DefaultValue("1500") @QueryParam("keepCount") Double keepCount,
                                          @DefaultValue("10") @QueryParam("digTimes") Integer digTimes) throws IOException, InterruptedException {
         Response<String> response = null;
         Double addRedPrice = 0.0;
@@ -67,14 +67,15 @@ public class AacoinSource extends BaseResource {
         Double sellCount = null;         //卖出的数量
         Boolean isCoinAvailable = true; //钱包中的代币总量是否可用,小于0.002不可用
 
+        //交易的对比如 AAT_ETH
+        String sellCoinArr[] = symbol.split("_");
+        String sellCoin = sellCoinArr[0];
+        String toCoin = sellCoinArr[1];
         for (int j = 0; j < digTimes; j++) {
             isCoinAvailable = true;
             System.out.println("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||挖矿次数 ：：：第 " + j + "次");
-            //用eth买入对应的币
-            Integer addPrice = 1;
             while (true) {
                 System.out.println("=================================================================================");
-                addPrice = addPrice + 1;
                 type = "buy-limit"; //TODO 买卖分类
                 //TODO 1.获取所有的账户信息,得到账户中含有的虚拟币的数量（以交易币和Eth为主）
                 List<AccountsData> accountsDataList = aacoinService.getAccountCoins(secretKey, accessKey);
@@ -85,17 +86,16 @@ public class AacoinSource extends BaseResource {
 
                 //TODO 2.获取当前成交价格进行
                 String currentPrice = aacoinService.getCurrentPrice(symbol);
-                Double dCurrentPrice = Double.valueOf(currentPrice) + addPrice * addRedPrice;
-                System.out.println(symbol + " 当前交易价格 : " + currentPrice);
-                System.out.println(symbol + " 购买价格 : " + dCurrentPrice.toString());
+                System.out.println(sellCoin + " 当前交易价格 : " + currentPrice);
+                System.out.println(sellCoin + " 购买价格 : " + currentPrice);
                 for (AccountsData accountsData : accountsDataList) {
                     //获取账户中eth的数量
-                    if (accountsData.getCurrencyCode().equals("ETH")) {
+                    if (accountsData.getCurrencyCode().equals(toCoin)) {
                         List<Accounts> accountses = accountsData.getAccounts();
                         for (Accounts accounts1 : accountses) {
                             ethAmount = Double.valueOf(accounts1.getBalance());
-                            System.out.println(" 可用Eth数量 : " + ethAmount);
-                            if (ethAmount > MINI_AMOUNT_ETH && ethAmount > dCurrentPrice) { //Eth的数量大于当前购买的价格并且大于最小交易额0.0025
+                            System.out.println(" 可用 " + toCoin + "数量 :" + ethAmount);
+                            if (ethAmount > MINI_AMOUNT_ETH) { //Eth的数量大于当前购买的价格并且大于最小交易额0.0025
                                 System.out.println(" 可以下单交易 : ");
                                 isEthAvailable = true;
                             } else {
@@ -108,20 +108,18 @@ public class AacoinSource extends BaseResource {
 
                 //有Eth的情况下执行下单的操作
                 if (isEthAvailable) {
-                    Double enableBuyCount = ethAmount / dCurrentPrice; //可以购买的次数
-                    if (enableBuyCount > 0) {
-                        //TODO 3.下单
-                        System.out.println("开始下单：" + "购买价格 : " + dCurrentPrice.toString());
-                        isMakeOrder = aacoinService.makeOrder(secretKey, accessKey, symbol, type, enableBuyCount.toString(), dCurrentPrice.toString());
-                        if (!isMakeOrder) {
-                            System.out.println("下单失败");
-                            break;//下单失败直接返回
-                        }
+                    Double enableBuyCount = ethAmount / Double.valueOf(currentPrice); //可以购买的个数
+                    //TODO 3.下单
+                    System.out.println("开始下单：" + "购买价格 : " + currentPrice);
+                    isMakeOrder = aacoinService.makeOrder(secretKey, accessKey, symbol, type, enableBuyCount.toString(), currentPrice);
+                    if (!isMakeOrder) {
+                        System.out.println("下单失败");
+                        break;//下单失败直接返回
                     }
                 }
 
-                //TODO 4.延迟3秒确认
-                Thread.sleep(3000);
+                //TODO 4.延迟1秒确认
+                Thread.sleep(1000);
 
                 //TODO 5.order/currentOrders 获取当前委托订单
                 //symbol 交易市场（例：BCC_ETH）
@@ -164,12 +162,9 @@ public class AacoinSource extends BaseResource {
             Double sellForEthCount = 0.0;
             Double sellForEthAmount = 0.0;
             //卖出对应的币获得eth
-            Integer reducePrice = 1;
             while (true) {
                 System.out.println("********************************************************************************");
                 type = "sell-limit"; //                type = "sell-limit";
-                String sellCoinArr[] = symbol.split("_");
-                String sellCoin = sellCoinArr[0];
 
                 //TODO 1.获取所有的账户信息,得到账户中含有的虚拟币的数量（以交易币和Eth为主）
                 List<AccountsData> accountsDataList = aacoinService.getAccountCoins(secretKey, accessKey);
@@ -177,16 +172,17 @@ public class AacoinSource extends BaseResource {
                     System.out.println(accountsData.getCurrencyCode() + " :  " + accountsData.getAccounts().get(0).getBalance());
                     if (accountsData.getCurrencyCode().equals(sellCoin)) {
                         Double coinCount = Double.valueOf(accountsData.getAccounts().get(0).getBalance());
-                        if (coinCount.intValue() < keepCount) {
+                        if (coinCount < keepCount) {
 //                            return new Response(Result.SUCCESS, "剩余的数量小于设定的保留数量，挖矿结束。");
-                            isCoinAvailable = false;
                             System.out.println("剩余的数量小于设定的保留数量，卖出结束");
+                            isCoinAvailable = false;
                             break;
                         }
                         sellForEthCount = coinCount; //账户中含有的可以交易的币的数量
                         if (sellForEthCount > sellCoinCount) {
                             sellForEthCount = sellCoinCount; //按设定的数量卖出
                         } else {
+                            isCoinAvailable = false;
                             return new Response(Result.SUCCESS, "账户中币的数量小于设定的交易数量,交易失败");
                         }
                     }
@@ -199,11 +195,9 @@ public class AacoinSource extends BaseResource {
                 //TODO 2.获取当前成交价格进行
                 String currentPrice = aacoinService.getCurrentPrice(symbol); //卖出的虚拟币的价格
                 System.out.println(symbol + " 当前交易价格  " + currentPrice);
+                System.out.println(symbol + " 卖出价格  " + currentPrice);
 
-                Double dCurrentPrice = Double.valueOf(currentPrice) - addRedPrice * reducePrice;
-                System.out.println(symbol + " 卖出价格  " + dCurrentPrice.toString());
-
-                sellForEthAmount = Double.valueOf(dCurrentPrice) * sellForEthCount;
+                sellForEthAmount = Double.valueOf(currentPrice) * sellForEthCount;
                 System.out.println(" 卖出获得的Eth数量  " + sellForEthAmount);
 
                 if (sellForEthAmount < MINI_AMOUNT_ETH) { //如果总量小于最小的交易量取消
@@ -215,12 +209,11 @@ public class AacoinSource extends BaseResource {
                     isCoinAvailable = true;
                 }
 
-                System.out.println(" 卖出的价格  " + dCurrentPrice.toString() + "; 卖出的数量 ：" + sellForEthCount);
+                System.out.println(" 卖出的价格  " + currentPrice + "; 卖出的数量 ：" + sellForEthCount);
                 if (isCoinAvailable) { //可以下单则进行下单操作
                     //TODO 下单
                     System.out.println("开始下单");
-                    isMakeOrder = aacoinService.makeOrder(secretKey, accessKey, symbol, type, String.valueOf(sellForEthCount.intValue()), dCurrentPrice.toString());
-                    reducePrice = reducePrice + 1;
+                    isMakeOrder = aacoinService.makeOrder(secretKey, accessKey, symbol, type, String.valueOf(sellForEthCount.intValue()), currentPrice);
                     if (!isMakeOrder) {
                         System.out.println("下单失败");
 //                        break;//下单失败直接返回
@@ -261,7 +254,7 @@ public class AacoinSource extends BaseResource {
                     }
                 }
 
-                if (!isCoinAvailable) {
+                if (orderTotal == 0 && !isCoinAvailable) {
                     break; //退出当前循环
                 }
             }
@@ -272,21 +265,21 @@ public class AacoinSource extends BaseResource {
         response = new Response(Result.SUCCESS, returnResult);
         return response;
     }
-
-    @ApiOperation(value = "accounts", notes = "查看账户信息 ")
-    @Path("accounts")
-    @POST
-    @Produces({Constant.APPLICATION_JSON_UTF8})
-    @Consumes({Constant.APPLICATION_JSON_UTF8})
-    public Response<List<AccountsData>> getAccountDetails(@QueryParam("secretKey") String secretKey, @QueryParam("accessKey") String accessKey) throws IOException, InterruptedException {
-
-        Response<List<AccountsData>> response = null;
-        List<AccountsData> accountsDataList = aacoinService.getAccountCoins(secretKey, accessKey);
-        System.out.println("账户信息 ：");
-        for (AccountsData accountsData : accountsDataList) {
-            System.out.println(accountsData.getCurrencyCode() + " :  " + accountsData.getAccounts().get(0).getBalance());
-        }
-        response = new Response(Result.SUCCESS, accountsDataList);
-        return response;
-    }
+//
+//    @ApiOperation(value = "accounts", notes = "查看账户信息 ")
+//    @Path("accounts")
+//    @POST
+//    @Produces({Constant.APPLICATION_JSON_UTF8})
+//    @Consumes({Constant.APPLICATION_JSON_UTF8})
+//    public Response<List<AccountsData>> getAccountDetails(@QueryParam("secretKey") String secretKey, @QueryParam("accessKey") String accessKey) throws IOException, InterruptedException {
+//
+//        Response<List<AccountsData>> response = null;
+//        List<AccountsData> accountsDataList = aacoinService.getAccountCoins(secretKey, accessKey);
+//        System.out.println("账户信息 ：");
+//        for (AccountsData accountsData : accountsDataList) {
+//            System.out.println(accountsData.getCurrencyCode() + " :  " + accountsData.getAccounts().get(0).getBalance());
+//        }
+//        response = new Response(Result.SUCCESS, accountsDataList);
+//        return response;
+//    }
 }

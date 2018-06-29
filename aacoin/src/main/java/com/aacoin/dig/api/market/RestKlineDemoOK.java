@@ -24,9 +24,9 @@ public class RestKlineDemoOK {
         HttpPost httpPost = new HttpPost(url);
 
         List<NameValuePair> params = new ArrayList<NameValuePair>();
-        params.add(new BasicNameValuePair("symbol", "BCH_ETH"));
-        params.add(new BasicNameValuePair("period", "5m"));
-        params.add(new BasicNameValuePair("size", "50"));
+        params.add(new BasicNameValuePair("symbol", "AAT_ETH"));
+        params.add(new BasicNameValuePair("period", "15m"));  //1m、5m、15m、60m、1d、1w
+        params.add(new BasicNameValuePair("size", "20"));    //1~1000
 
         httpPost.setEntity(new UrlEncodedFormEntity(params, "UTF-8"));
 
